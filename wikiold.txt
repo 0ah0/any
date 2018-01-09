@@ -1,0 +1,66 @@
+Welcome to the vocol wiki!
+
+## Summary of our state on 2014-08-06
+
+* We have an idea of a generic workflow: from a Turtle source in a GitHub repo to automatically publishing an HTML version of the vocabulary
+* We got specgen running (however with limitations)
+* Neologism doesn't seem to be an option: not automatable; targeting humans working interactively inside Drupal
+* for now, users would have to edit Turtle files
+  * … should be sufficiently easy if we promote best practices and stick to a subset of Turtle/RDF/OWL.
+  * in future, we might want to search or develop 
+    * a WYSIWYG frontend that doesn't break the source code line arrangement (Christoph's intuition: many people tried many times, few focused on source code compatibility, never really worked)
+    * a domain-specific simplified frontend language
+
+## specgen dependencies
+
+* https://github.com/specgen/specgen (the latest and greatest!) needs python-igraph (which Christoph couldn't manage to install on cygwin, and Fabrizio neither) - Works fine on Mac
+* https://github.com/zazi/specgen doesn't need python-igraph
+* specgen (maybe both of the versions mentioned above) requires an old rdflib (`pip install rdflib==3.4.0`) - This version is also required for the version with graph
+* specgen (/zazi/specgen without igraph dependency) worked on Fabrizio's Ubuntu 12.04 machine ONLY with the following bug-fixes AND rdflib 3.4.0. (python-igraph installation was not successful).
+
+## specgen bug (TODO fork and send pull request)
+
+olo (the only sample vocabulary that comes with https://github.com/zazi/specgen) uses some OWL and therefore blank nodes, which are not really supported well.
+
+Here is a brute-force fix that disables support of blank nodes (and thus OWL property restrictions):
+
+    diff --git a/libvocab.py b/libvocab.py
+    index b1640a7..8394e2c 100644
+    --- a/libvocab.py
+    +++ b/libvocab.py
+    @@ -463,7 +463,7 @@ class Vocab(object):
+    
+    
+            def niceName(self, uri = None):
+    -               if uri is None:
+    +               if (uri is None or type(uri) == tuple):
+                            return
+                    # speclog("Nicing uri "+uri)
+                    regexp = re.compile("^(.*[/#])([^/#]+)$")
+    @@ -704,6 +704,8 @@ class VocabReport(object):
+                            ordone = False
+                            for (subclass) in relations:
+                                    subclassnice = self.vocab.niceName(subclass)
+    +                                if (subclassnice is None):
+    +                                        continue
+                                    # print "subclass ",subclass
+                                    # print "subclassnice ",subclassnice
+                                    # check niceName result
+    @@ -999,6 +1001,8 @@ class VocabReport(object):
+                            relations = g.query(q)
+                            for (domain) in relations:
+                                    domainnice = self.vocab.niceName(domain)
+    +                                if (domainnice is None):
+    +                                        continue
+                                    # print "domain ",domain
+                                    # print "domainnice ",domainnice
+                                    # check niceName result
+    @@ -1099,6 +1103,8 @@ class VocabReport(object):
+                            relations = g.query(q)
+                            for (range) in relations:
+                                    rangenice = self.vocab.niceName(range)
+    +                                if (rangenice is None):
+    +                                        continue
+                                    # print "range ",range
+                                    # print "rangenice ",rangenice
+                                    # check niceName result
